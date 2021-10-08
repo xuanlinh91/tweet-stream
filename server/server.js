@@ -174,8 +174,6 @@ app.post("/api/rules", async (req, res) => {
 });
 
 const streamTweets = (socket, token) => {
-    let stream;
-
     const config = {
         url: streamURL,
         auth: {
@@ -189,11 +187,10 @@ const streamTweets = (socket, token) => {
         console.log("Start to send stream get request");
         stream
             .on("data", async (data) => {
-                console.log("Dm stream co data");
                 try {
                     const json = JSON.parse(data);
                     if (json.connection_issue) {
-                        console.log(json.connection_issue);
+                        // console.log(json.connection_issue);
                         socket.emit("error", json);
                         reconnect(stream, socket, token);
                     } else {
@@ -208,23 +205,23 @@ const streamTweets = (socket, token) => {
                             // let img = await getGiphyUrl();
                             // sendToTelegram(img);
                         } else {
-                            console.log("authError");
+                            // console.log("authError");
                             socket.emit("authError", json);
                         }
                     }
                 } catch (e) {
-                    console.log(e);
+                    // console.log(e);
                     socket.emit("heartbeat");
                 }
             })
             .on("error", (error) => {
                 // Connection timed out
-                console.log(error);
+                // console.log(error);
                 socket.emit("error", errorMessage);
                 reconnect(stream, socket, token);
             });
     } catch (e) {
-        console.log(e);
+        // console.log(e);
         socket.emit("authError", authMessage);
     }
 };
@@ -243,7 +240,7 @@ io.on("connection", async (socket) => {
         io.emit("connect", "Client connected");
         const stream = streamTweets(io, token);
     } catch (e) {
-        console.log(e);
+        // console.log(e);
         io.emit("authError", authMessage);
     }
 });
