@@ -119,7 +119,6 @@ app.get("/api/rules", async (req, res) => {
     }
 
     const token = BEARER_TOKEN;
-    console.log("Dm get rules");
     const requestConfig = {
         url: rulesURL,
         auth: {
@@ -150,7 +149,6 @@ app.post("/api/rules", async (req, res) => {
         res.status(400).send(authMessage);
     }
 
-    console.log("Dm post rules");
     const token = BEARER_TOKEN;
     const requestConfig = {
         url: rulesURL,
