@@ -119,6 +119,7 @@ app.get("/api/rules", async (req, res) => {
     }
 
     const token = BEARER_TOKEN;
+    console.log("Dm get rules");
     const requestConfig = {
         url: rulesURL,
         auth: {
@@ -149,6 +150,7 @@ app.post("/api/rules", async (req, res) => {
         res.status(400).send(authMessage);
     }
 
+    console.log("Dm post rules");
     const token = BEARER_TOKEN;
     const requestConfig = {
         url: rulesURL,
@@ -184,12 +186,14 @@ const streamTweets = (socket, token) => {
 
     try {
         const stream = request.get(config);
-
+        console.log("Dm stream");
         stream
             .on("data", async (data) => {
+                console.log("Dm stream co data");
                 try {
                     const json = JSON.parse(data);
                     if (json.connection_issue) {
+                        console.log(json.connection_issue);
                         socket.emit("error", json);
                         reconnect(stream, socket, token);
                     } else {
@@ -204,19 +208,23 @@ const streamTweets = (socket, token) => {
                             // let img = await getGiphyUrl();
                             // sendToTelegram(img);
                         } else {
+                            console.log("authError");
                             socket.emit("authError", json);
                         }
                     }
                 } catch (e) {
+                    console.log(e);
                     socket.emit("heartbeat");
                 }
             })
             .on("error", (error) => {
                 // Connection timed out
+                console.log(error);
                 socket.emit("error", errorMessage);
                 reconnect(stream, socket, token);
             });
     } catch (e) {
+        console.log(e);
         socket.emit("authError", authMessage);
     }
 };
@@ -234,6 +242,7 @@ io.on("connection", async (socket) => {
         io.emit("connect", "Client connected");
         const stream = streamTweets(io, token);
     } catch (e) {
+        console.log(e);
         io.emit("authError", authMessage);
     }
 });
