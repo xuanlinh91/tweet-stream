@@ -186,7 +186,7 @@ const streamTweets = (socket, token) => {
 
     try {
         const stream = request.get(config);
-        console.log("Dm stream");
+        console.log("Start to send stream get request");
         stream
             .on("data", async (data) => {
                 console.log("Dm stream co data");
@@ -237,6 +237,7 @@ const reconnect = async (stream, socket, token) => {
 };
 
 io.on("connection", async (socket) => {
+    console.log("On connection");
     try {
         const token = BEARER_TOKEN;
         io.emit("connect", "Client connected");
