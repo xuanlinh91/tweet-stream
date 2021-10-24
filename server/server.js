@@ -203,7 +203,7 @@ const streamTweets = (socket, token) => {
                             // let img = await getGiphyUrl();
                             // sendToTelegram(img);
                         } else {
-                            // console.log("authError");
+                            console.log("authError");
                             socket.emit("authError", json);
                         }
                     }
@@ -214,12 +214,12 @@ const streamTweets = (socket, token) => {
             })
             .on("error", (error) => {
                 // Connection timed out
-                // console.log(error);
+                console.log(error);
                 socket.emit("error", errorMessage);
                 reconnect(stream, socket, token);
             });
     } catch (e) {
-        // console.log(e);
+        console.log(e);
         socket.emit("authError", authMessage);
     }
 };
@@ -228,6 +228,7 @@ const reconnect = async (stream, socket, token) => {
     timeout++;
     stream.abort();
     await sleep(2 ** timeout * 1000);
+    console.log("reconnect");
     streamTweets(socket, token);
 };
 
