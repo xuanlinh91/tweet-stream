@@ -171,7 +171,10 @@ app.post("/api/rules", async (req, res) => {
     }
 });
 
-const streamTweets = (socket, token) => {
+let myStream = null;
+let mySocket = null;
+
+const streamTweets = (token) => {
     const config = {
         url: streamURL,
         auth: {
@@ -181,19 +184,19 @@ const streamTweets = (socket, token) => {
     };
 
     try {
-        const stream = request.get(config);
+        myStream = request.get(config);
         console.log("Start to send stream get request");
-        stream
+        myStream
             .on("data", async (data) => {
                 try {
                     const json = JSON.parse(data);
                     if (json.connection_issue) {
                         // console.log(json.connection_issue);
-                        socket.emit("error", json);
-                        reconnect(stream, socket, token);
+                        mySocket.emit("error", json);
+                        reconnect(myStream, token);
                     } else {
                         if (json.data) {
-                            socket.emit("tweet", json);
+                            mySocket.emit("tweet", json);
                             console.log(json);
                             let authorName = await getTwitterUserName(json.data.author_id);
                             let tweet = authorName + "\n";
@@ -204,32 +207,32 @@ const streamTweets = (socket, token) => {
                             // sendToTelegram(img);
                         } else {
                             console.log("authError");
-                            socket.emit("authError", json);
+                            mySocket.emit("authError", json);
                         }
                     }
                 } catch (e) {
                     // console.log(e);
-                    socket.emit("heartbeat");
+                    mySocket.emit("heartbeat");
                 }
             })
             .on("error", (error) => {
                 // Connection timed out
                 console.log(error);
-                socket.emit("error", errorMessage);
-                reconnect(stream, socket, token);
+                mySocket.emit("error", errorMessage);
+                reconnect(stream, token);
             });
     } catch (e) {
         console.log(e);
-        socket.emit("authError", authMessage);
+        mySocket.emit("authError", authMessage);
     }
 };
 
-const reconnect = async (stream, socket, token) => {
+const reconnect = async (stream, token) => {
     timeout++;
     stream.abort();
     await sleep(2 ** timeout * 1000);
     console.log("reconnect");
-    streamTweets(socket, token);
+    streamTweets(token);
 };
 
 io.on("connection", async (socket) => {
@@ -237,7 +240,8 @@ io.on("connection", async (socket) => {
     try {
         const token = BEARER_TOKEN;
         io.emit("connect", "Client connected");
-        const stream = streamTweets(io, token);
+        mySocket = io;
+        streamTweets(token);
     } catch (e) {
         // console.log(e);
         io.emit("authError", authMessage);
