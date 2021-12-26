@@ -18,17 +18,12 @@ app.use(bodyParser.urlencoded({extended: true}));
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// const TELEGRAM_BOT_TOKEN = "1977448821:AAE7Oc9qCaKyUiMr1C2BDqt5gzZ_y2TWdV8";
-const GIPHY_API = "http://api.giphy.com/v1/gifs/random?api_key=ii6qSOspDIV2E5fn6n8DvSFCSqyVGafd&tag=boobs&rating=r";
 const TWITTER_USER_API = "https://api.twitter.com/2/users/";
 const TELEGRAM_BOT_TOKEN = "1907552766:AAGpD0tmzAKfwwut_6alDe8j6N_1EzCFktQ";
 const TELEGRAM_CHANNEL_ID = "-570053536";
-// const TELEGRAM_API = "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN + "/sendMessage?chat_id=" + TELEGRAM_CHANNEL_ID + "&text=";
 const TELEGRAM_API = "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN + "/sendMessage";
 
 const BEARER_TOKEN = "AAAAAAAAAAAAAAAAAAAAAOv9TgEAAAAAzbML6mMctDAWiFPsZhNKZVcJ6Vg%3DY1idRNejBHf3amwW9fBCskggnDhq3lMMCSCobwGYqiWlQTYWOA";
-
-// const BEARER_TOKEN = process.env.TWITTER_BEARER_TOKEN;
 
 let timeout = 0;
 
@@ -54,25 +49,11 @@ const authMessage = {
     type: "https://developer.twitter.com/en/docs/authentication",
 };
 
+let mySocket = null;
+let myStream = null;
+
 const sleep = async (delay) => {
     return new Promise((resolve) => setTimeout(() => resolve(true), delay));
-};
-
-const getGiphyUrl = async () => {
-    let requestConfig = {
-        url: GIPHY_API,
-        json: true,
-    };
-
-    try {
-        let response = await get(requestConfig);
-        if (response.statusCode == 200) {
-            let imageUrl = response.body.data.images.downsized_large.url;
-            return imageUrl;
-        }
-    } catch (e) {
-        console.log(e);
-    }
 };
 
 const getTwitterUserName = async (userId) => {
@@ -96,7 +77,6 @@ const getTwitterUserName = async (userId) => {
         console.log(e);
     }
 };
-
 
 const sendToTelegram = (message) => {
     axios.post(TELEGRAM_API, {
@@ -171,11 +151,11 @@ app.post("/api/rules", async (req, res) => {
     }
 });
 
-const streamTweets = (socket, token) => {
+const streamTweets = () => {
     const config = {
         url: streamURL,
         auth: {
-            bearer: token,
+            bearer: BEARER_TOKEN,
         },
         timeout: 31000,
     };
@@ -189,57 +169,68 @@ const streamTweets = (socket, token) => {
                     const json = JSON.parse(data);
                     if (json.connection_issue) {
                         // console.log(json.connection_issue);
-                        socket.emit("error", json);
-                        reconnect(stream, socket, token);
+                        if (mySocket != null) {
+                            mySocket.emit("error", json);
+                        }
+                        // reconnect(stream, socket);
                     } else {
                         if (json.data) {
-                            socket.emit("tweet", json);
+                            if (mySocket != null) {
+                                mySocket.emit("tweet", json);
+                            }
                             console.log(json);
                             let authorName = await getTwitterUserName(json.data.author_id);
                             let tweet = authorName + "\n";
                             tweet += json.data.text + "\n";
                             tweet += "https://twitter.com/" + json.data.author_id + "/status/" + json.data.id;
                             sendToTelegram(tweet);
-                            // let img = await getGiphyUrl();
-                            // sendToTelegram(img);
                         } else {
                             console.log("authError");
-                            socket.emit("authError", json);
+                            if (mySocket != null) {
+                                mySocket.emit("authError", json);
+                            }
                         }
                     }
                 } catch (e) {
-                    // console.log(e);
-                    socket.emit("heartbeat");
+                    console.log(e);
+                    if (mySocket != null) {
+                        mySocket.emit("heartbeat");
+                    }
                 }
             })
             .on("error", (error) => {
                 // Connection timed out
                 console.log(error);
-                socket.emit("error", errorMessage);
-                reconnect(stream, socket, token);
+                if (mySocket != null) {
+                    mySocket.emit("error", errorMessage);
+                }
+
+                // reconnect(stream, socket);
             });
     } catch (e) {
         console.log(e);
-        socket.emit("authError", authMessage);
+        if (mySocket != null) {
+            mySocket.emit("authError", authMessage);
+        }
     }
 };
 
-const reconnect = async (stream, socket, token) => {
+const reconnect = async (stream, socket) => {
     timeout++;
     stream.abort();
     await sleep(2 ** timeout * 1000);
     console.log("reconnect");
-    streamTweets(socket, token);
+    streamTweets();
 };
 
 io.on("connection", async (socket) => {
     console.log("On connection");
     try {
-        const token = BEARER_TOKEN;
         io.emit("connect", "Client connected");
-        const stream = streamTweets(io, token);
+        // streamTweets(io);
+        mySocket = io;
     } catch (e) {
-        // console.log(e);
+        console.log(e);
         io.emit("authError", authMessage);
     }
 });
@@ -256,3 +247,4 @@ if (process.env.NODE_ENV === "production") {
 }
 
 server.listen(port, () => console.log(`Listening on port ${port}`));
+streamTweets();
