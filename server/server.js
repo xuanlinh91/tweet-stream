@@ -172,7 +172,7 @@ const streamTweets = () => {
                         if (mySocket != null) {
                             mySocket.emit("error", json);
                         }
-                        // reconnect(stream, socket);
+                        reconnect();
                     } else {
                         if (json.data) {
                             if (mySocket != null) {
@@ -205,7 +205,7 @@ const streamTweets = () => {
                     mySocket.emit("error", errorMessage);
                 }
 
-                // reconnect(stream, socket);
+                reconnect();
             });
     } catch (e) {
         console.log(e);
@@ -215,9 +215,12 @@ const streamTweets = () => {
     }
 };
 
-const reconnect = async (stream, socket) => {
+const reconnect = async () => {
     timeout++;
-    stream.abort();
+    if (myStream != null) {
+        myStream.abort();
+    }
+
     await sleep(2 ** timeout * 1000);
     console.log("reconnect");
     streamTweets();
