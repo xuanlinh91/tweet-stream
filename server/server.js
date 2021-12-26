@@ -129,7 +129,6 @@ app.post("/api/rules", async (req, res) => {
         res.status(400).send(authMessage);
     }
 
-    const token = BEARER_TOKEN;
     const requestConfig = {
         url: rulesURL,
         auth: {
