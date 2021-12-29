@@ -68,7 +68,7 @@ const getTwitterUserName = async (userId) => {
 
     try {
         let response = await get(requestConfig);
-        if (response.statusCode == 200) {
+        if (response.statusCode === 200) {
             let name = response.body.data.name;
             let userName = response.body.data.username;
             return name;
@@ -98,11 +98,10 @@ app.get("/api/rules", async (req, res) => {
         res.status(400).send(authMessage);
     }
 
-    const token = BEARER_TOKEN;
     const requestConfig = {
         url: rulesURL,
         auth: {
-            bearer: token,
+            bearer: BEARER_TOKEN,
         },
         json: true,
     };
@@ -113,8 +112,6 @@ app.get("/api/rules", async (req, res) => {
         if (response.statusCode !== 200) {
             if (response.statusCode === 403) {
                 res.status(403).send(response.body);
-            } else {
-                throw new Error(response.body.error.message);
             }
         }
 
@@ -142,8 +139,6 @@ app.post("/api/rules", async (req, res) => {
 
         if (response.statusCode === 200 || response.statusCode === 201) {
             res.send(response);
-        } else {
-            throw new Error(response);
         }
     } catch (e) {
         res.send(e);
@@ -167,6 +162,7 @@ const streamTweets = () => {
                 try {
                     const json = JSON.parse(data);
                     if (json.connection_issue) {
+                        console.log("connection_issue");
                         console.log(json);
                         if (mySocket != null) {
                             mySocket.emit("error", json);
@@ -193,6 +189,7 @@ const streamTweets = () => {
                         }
                     }
                 } catch (e) {
+                    console.log("exception");
                     console.log(e);
                     if (mySocket != null) {
                         mySocket.emit("heartbeat");
@@ -201,6 +198,7 @@ const streamTweets = () => {
             })
             .on("error", (error) => {
                 // Connection timed out
+                console.log("error");
                 console.log(error);
                 if (mySocket != null) {
                     mySocket.emit("error", errorMessage);
@@ -209,9 +207,10 @@ const streamTweets = () => {
                 reconnect();
             });
     } catch (e) {
+        console.log("exception 2");
         console.log(e);
         if (mySocket != null) {
-            mySocket.emit("authError", authMessage);
+            mySocket.emit("exception 2", authMessage);
         }
     }
 };
