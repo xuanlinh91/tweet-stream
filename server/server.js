@@ -167,7 +167,7 @@ const streamTweets = () => {
                 try {
                     const json = JSON.parse(data);
                     if (json.connection_issue) {
-                        // console.log(json.connection_issue);
+                        console.log(json);
                         if (mySocket != null) {
                             mySocket.emit("error", json);
                         }
@@ -185,6 +185,7 @@ const streamTweets = () => {
                             sendToTelegram(tweet);
                         } else {
                             console.log("authError");
+                            console.log(json);
                             if (mySocket != null) {
                                 mySocket.emit("authError", json);
                             }
