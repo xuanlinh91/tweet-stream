@@ -189,6 +189,7 @@ const streamTweets = () => {
                             if (mySocket != null) {
                                 mySocket.emit("authError", json);
                             }
+                            reconnect();
                         }
                     }
                 } catch (e) {
