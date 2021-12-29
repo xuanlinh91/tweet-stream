@@ -154,65 +154,71 @@ const streamTweets = () => {
         timeout: 31000,
     };
 
-    try {
-        const stream = request.get(config);
-        console.log("Start to send stream get request");
-        stream
-            .on("data", async (data) => {
-                try {
-                    const json = JSON.parse(data);
-                    if (json.connection_issue) {
-                        console.log("connection_issue");
+    // try {
+    const stream = request.get(config);
+    console.log("Start to send stream get request");
+    stream
+        .on("data", async (data) => {
+            try {
+                const json = JSON.parse(data);
+                if (json.connection_issue) {
+                    console.log("connection_issue");
+                    console.log(json);
+                    if (mySocket != null) {
+                        mySocket.emit("error", json);
+                    }
+                    reconnect();
+                } else {
+                    if (json.data) {
+                        if (mySocket != null) {
+                            mySocket.emit("tweet", json);
+                        }
+                        console.log(json);
+                        let authorName = await getTwitterUserName(json.data.author_id);
+                        let tweet = authorName + "\n";
+                        tweet += json.data.text + "\n";
+                        tweet += "https://twitter.com/" + json.data.author_id + "/status/" + json.data.id;
+                        sendToTelegram(tweet);
+                    } else {
+                        console.log("authError");
                         console.log(json);
                         if (mySocket != null) {
-                            mySocket.emit("error", json);
+                            mySocket.emit("authError", json);
                         }
                         reconnect();
-                    } else {
-                        if (json.data) {
-                            if (mySocket != null) {
-                                mySocket.emit("tweet", json);
-                            }
-                            console.log(json);
-                            let authorName = await getTwitterUserName(json.data.author_id);
-                            let tweet = authorName + "\n";
-                            tweet += json.data.text + "\n";
-                            tweet += "https://twitter.com/" + json.data.author_id + "/status/" + json.data.id;
-                            sendToTelegram(tweet);
-                        } else {
-                            console.log("authError");
-                            console.log(json);
-                            if (mySocket != null) {
-                                mySocket.emit("authError", json);
-                            }
-                            reconnect();
-                        }
                     }
-                } catch (e) {
+                }
+            } catch (e) {
+                if (e instanceof SyntaxError) {
+                    //Buffer data
+                    //Do nothing
+                } else {
                     console.log("exception");
                     console.log(e);
-                    if (mySocket != null) {
-                        mySocket.emit("heartbeat");
-                    }
+                    console.log(data);
                 }
-            })
-            .on("error", (error) => {
-                // Connection timed out
-                console.log("error");
-                console.log(error);
                 if (mySocket != null) {
-                    mySocket.emit("error", errorMessage);
+                    mySocket.emit("heartbeat");
                 }
+            }
+        })
+        .on("error", (error) => {
+            // Connection timed out
+            console.log("error");
+            console.log(error);
+            if (mySocket != null) {
+                mySocket.emit("error", errorMessage);
+            }
 
-                reconnect();
-            });
-    } catch (e) {
-        console.log("exception 2");
-        console.log(e);
-        if (mySocket != null) {
-            mySocket.emit("exception 2", authMessage);
-        }
-    }
+            reconnect();
+        });
+    // } catch (e) {
+    //     console.log("exception 2");
+    //     console.log(e);
+    //     if (mySocket != null) {
+    //         mySocket.emit("exception 2", authMessage);
+    //     }
+    // }
 };
 
 const reconnect = async () => {
