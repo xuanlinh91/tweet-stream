@@ -2,3 +2,5 @@
 /.idea
 **/.idea
 .project
+/build
+output.txt
