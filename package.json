@@ -14,7 +14,7 @@
     "http": "0.0.1-security",
     "http-proxy-middleware": "^1.0.3",
     "minimist": "^1.2.5",
-    "moment": "^2.24.0",
+    "moment": "^2.29.1",
     "moment-timezone": "^0.5.27",
     "path": "^0.12.7",
     "process": "^0.11.10",

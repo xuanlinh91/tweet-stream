@@ -6,6 +6,7 @@ const path = require("path");
 const socketIo = require("socket.io");
 const http = require("http");
 const axios = require("axios");
+const moment = require("moment");
 
 const app = express();
 let port = process.env.PORT || 3000;
@@ -74,6 +75,7 @@ const getTwitterUserName = async (userId) => {
             return name;
         }
     } catch (e) {
+        console.log(`${moment().format()}: Get twitter username error`);
         console.log(e);
     }
 };
@@ -85,12 +87,13 @@ const sendToTelegram = (message) => {
     })
         .then(function (response) {
             // handle success
-            // console.log(response);
+            console.log("Successfully sent to telegram");
         })
-        .catch(function (error) {
-            // handle error
-            console.log(error);
-        });
+        // .catch(function (error) {
+        //     // handle error
+        //     console.log(`${moment().format()}: sendToTelegram error`);
+        //     console.log(error);
+        // });
 }
 
 app.get("/api/rules", async (req, res) => {
@@ -154,46 +157,45 @@ const streamTweets = () => {
         timeout: 31000,
     };
 
-    // try {
     const stream = request.get(config);
-    console.log("Start to send stream get request");
+    console.log(`${moment().format()}: Start to send stream get request`);
     stream
         .on("data", async (data) => {
             try {
                 const json = JSON.parse(data);
                 if (json.connection_issue) {
-                    console.log("connection_issue");
+                    console.log(`${moment().format()}: Connection_issue`);
                     console.log(json);
                     if (mySocket != null) {
                         mySocket.emit("error", json);
                     }
-                    reconnect();
+                    await reconnect();
                 } else {
                     if (json.data) {
                         if (mySocket != null) {
                             mySocket.emit("tweet", json);
                         }
-                        console.log(json);
+                        console.log(moment().format() + ": " + json);
                         let authorName = await getTwitterUserName(json.data.author_id);
                         let tweet = authorName + "\n";
                         tweet += json.data.text + "\n";
                         tweet += "https://twitter.com/" + json.data.author_id + "/status/" + json.data.id;
                         sendToTelegram(tweet);
                     } else {
-                        console.log("authError");
+                        console.log(`${moment().format()}: AuthError`);
                         console.log(json);
                         if (mySocket != null) {
                             mySocket.emit("authError", json);
                         }
-                        reconnect();
+                        await reconnect();
                     }
                 }
             } catch (e) {
                 if (e instanceof SyntaxError) {
                     //Buffer data
-                    //Do nothing
+                    console.log(`${moment().format()}: Buffering`)
                 } else {
-                    console.log("exception");
+                    console.log(`${moment().format()}: Exception`);
                     console.log(e);
                     console.log(data);
                 }
@@ -204,7 +206,7 @@ const streamTweets = () => {
         })
         .on("error", (error) => {
             // Connection timed out
-            console.log("error");
+            console.log(`${moment().format()}: error`);
             console.log(error);
             if (mySocket != null) {
                 mySocket.emit("error", errorMessage);
@@ -212,13 +214,6 @@ const streamTweets = () => {
 
             reconnect();
         });
-    // } catch (e) {
-    //     console.log("exception 2");
-    //     console.log(e);
-    //     if (mySocket != null) {
-    //         mySocket.emit("exception 2", authMessage);
-    //     }
-    // }
 };
 
 const reconnect = async () => {
@@ -228,17 +223,19 @@ const reconnect = async () => {
     }
 
     await sleep(2 ** timeout * 1000);
-    console.log("reconnect");
+    console.log(`${moment().format()}: Reconnect`);
     streamTweets();
 };
 
 io.on("connection", async (socket) => {
+    console.log(moment().format());
     console.log("On connection");
     try {
         io.emit("connect", "Client connected");
         // streamTweets(io);
         mySocket = io;
     } catch (e) {
+        console.log(`${moment().format()}: Connection error`);
         console.log(e);
         io.emit("authError", authMessage);
     }
@@ -255,5 +252,5 @@ if (process.env.NODE_ENV === "production") {
     port = 3001;
 }
 
-server.listen(port, () => console.log(`Listening on port ${port}`));
+server.listen(port, () => console.log(`${moment().format()}: Listening on port ${port}`));
 streamTweets();
